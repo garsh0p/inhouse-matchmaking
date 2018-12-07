@@ -2,6 +2,7 @@ import requests
 import trueskill
 import itertools
 
+# The 10 players that are playing in the game.
 players = [
     'gaR',
     'all3nvan',
@@ -15,10 +16,11 @@ players = [
     'bakarich',
 ]
 
+# Pull match data.
 url = 'https://league-tracker-api-stage.herokuapp.com/single_page_app_initializations'
-
 response = requests.get(url).json()
 
+# Build lookup maps.
 summoner_id_to_name = {}
 for sid, obj in response['summoners'].iteritems():
     summoner_id_to_name[int(sid)] = obj['name']
@@ -29,9 +31,11 @@ summoner_id_to_rating = {}
 for sid in summoner_id_to_name.iterkeys():
     summoner_id_to_rating[int(sid)] = trueskill.Rating()
 
+# Sort games by create time.
 sorted_games = [g for g in response['games'].itervalues()]
 sorted_games.sort(key=lambda o: o['createTime'])
 
+# Iterate through all games and calculate ratings.
 for game in sorted_games:
     winning_team = []
     losing_team = []
@@ -52,11 +56,13 @@ for game in sorted_games:
     for p, r in zip(losing_team, new_losing_team_ratings):
         summoner_id_to_rating[p] = r
 
+# Generate a sorted ranking.
 rankings = [(summoner_id_to_name[sid], trueskill.expose(rating)) for sid, rating in summoner_id_to_rating.iteritems()]
 rankings.sort(reverse=True, key=lambda t: t[1])
 for r in rankings:
     print r[0], r[1]
 
+# Calculate match quality for all possible combinations of teams.
 qualities = []
 all_player_ids = set([summoner_name_to_id[p] for p in players])
 for left_team in itertools.combinations(all_player_ids, 5):
